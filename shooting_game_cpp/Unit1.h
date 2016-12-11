@@ -11,6 +11,7 @@
 #include <FMX.Objects.hpp>
 #include <FMX.StdCtrls.hpp>
 #include <FMX.Types.hpp>
+#include <random>
 
 //---------------------------------------------------------------------------
 class TfmShooting_main : public TForm
@@ -34,6 +35,20 @@ __published:	// IDE で管理されるコンポーネント
 	TButton *Button_start;
 	TColorAnimation *ColorAnimation1;
 	TRectangle *Rectangle1;
+	TRectangle *Rectangle_Enm_laserbeam;
+	TFloatAnimation *FloatAnimation_Enm_laserbeam;
+	TRectangle *Rectangle_Enm1;
+	TBitmapAnimation *BitmapAnimation_Enm1;
+	TFloatAnimation *FloatAnimation_Enm1;
+	TRectangle *Rectangle_Enm2;
+	TBitmapAnimation *BitmapAnimation_Enm2;
+	TFloatAnimation *FloatAnimation_Enm2;
+	TRectangle *Rectangle_Enm3;
+	TBitmapAnimation *BitmapAnimation_Enm3;
+	TFloatAnimation *FloatAnimation_Enm3;
+	TTimer *Timer_Enms;
+	TTimer *Timer_Enms_laserbeam;
+	TLabel *Label_score;
 	void __fastcall FloatAnimation_background1Finish(TObject *Sender);
 	void __fastcall FloatAnimation_background2Finish(TObject *Sender);
 	void __fastcall Button_startClick(TObject *Sender);
@@ -42,11 +57,27 @@ __published:	// IDE で管理されるコンポーネント
 	void __fastcall Button_missileClick(TObject *Sender);
 	void __fastcall FloatAnimation_player_xFinish(TObject *Sender);
 	void __fastcall FloatAnimation_missileFinish(TObject *Sender);
+	void __fastcall FloatAnimation_Enm1Finish(TObject *Sender);
+	void __fastcall FloatAnimation_Enm2Finish(TObject *Sender);
+	void __fastcall FloatAnimation_Enm3Finish(TObject *Sender);
+	void __fastcall FloatAnimation_player_yFinish(TObject *Sender);
+	void __fastcall FormCreate(TObject *Sender);
+	void __fastcall Timer_EnmsTimer(TObject *Sender);
+	void __fastcall Timer_Enms_laserbeamTimer(TObject *Sender);
+	void __fastcall FloatAnimation_Enm_laserbeamFinish(TObject *Sender);
 private:	// ユーザー宣言
+	const unsigned int missile_max{900};
+	/*unsigned int 	FiTotal{0};
+	TDateTime       FdtPlay{0};*/
+	std::random_device rnd_;
+	std::mt19937 	randomize_{rnd_()};
+	void __fastcall enm_start(TRectangle* enm, TFloatAnimation* ani, TBitmapAnimation* bani);
+	void __fastcall EnmlaserbeamStat(TRectangle* enm);
 public:		// ユーザー宣言
 	__fastcall TfmShooting_main(TComponent* Owner);
 };
 //---------------------------------------------------------------------------
 extern PACKAGE TfmShooting_main *fmShooting_main;
 //---------------------------------------------------------------------------
+TRectangle* 	KanokeBuf{nullptr};
 #endif
