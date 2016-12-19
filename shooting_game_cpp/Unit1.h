@@ -49,6 +49,7 @@ __published:	// IDE で管理されるコンポーネント
 	TTimer *Timer_Enms;
 	TTimer *Timer_Enms_laserbeam;
 	TLabel *Label_score;
+	TTimer *Timer_gameover;
 	void __fastcall FloatAnimation_background1Finish(TObject *Sender);
 	void __fastcall FloatAnimation_background2Finish(TObject *Sender);
 	void __fastcall Button_startClick(TObject *Sender);
@@ -65,14 +66,21 @@ __published:	// IDE で管理されるコンポーネント
 	void __fastcall Timer_EnmsTimer(TObject *Sender);
 	void __fastcall Timer_Enms_laserbeamTimer(TObject *Sender);
 	void __fastcall FloatAnimation_Enm_laserbeamFinish(TObject *Sender);
+	void __fastcall FormKeyDown(TObject *Sender, WORD &Key, System::WideChar &KeyChar,
+		  TShiftState Shift);
+	void __fastcall Timer_gameoverTimer(TObject *Sender);
 private:	// ユーザー宣言
 	const unsigned int missile_max{900};
-	/*unsigned int 	FiTotal{0};
-	TDateTime       FdtPlay{0};*/
+	unsigned int 	FiTotal{0};
+	TDateTime       FdtPlay{0};
 	std::random_device rnd_;
 	std::mt19937 	randomize_{rnd_()};
 	void __fastcall enm_start(TRectangle* enm, TFloatAnimation* ani, TBitmapAnimation* bani);
 	void __fastcall EnmlaserbeamStat(TRectangle* enm);
+	float __fastcall EnmExist(TRectangle* enm);
+	void __fastcall game_reset();
+	bool __fastcall hantei(TRectF& r1,TRectF& r2);
+    bool __fastcall Rect_hantei(TRectangle* rect1, TRectangle* rect2);
 public:		// ユーザー宣言
 	__fastcall TfmShooting_main(TComponent* Owner);
 };

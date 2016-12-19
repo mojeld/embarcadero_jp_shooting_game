@@ -14,6 +14,7 @@ extern "C" int FMXmain()
 	try
 	{
 		Application->Initialize();
+		Application->FormFactor->Orientations = TScreenOrientations() << TScreenOrientation::Landscape << TScreenOrientation::InvertedLandscape;
 		Application->CreateForm(__classid(TfmShooting_main), &fmShooting_main);
 		Application->Run();
 	}

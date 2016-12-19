@@ -13,7 +13,27 @@ TfmShooting_main *fmShooting_main;
 __fastcall TfmShooting_main::TfmShooting_main(TComponent* Owner)
 	: TForm(Owner)
 {
+    game_reset();
 }
+
+void __fastcall TfmShooting_main::game_reset()
+{
+	Button_up->Visible                 = false; //ボタンUp非表示
+	Button_down->Visible               = false; //ボタンDown非表示
+	Button_missile->Visible            = false; //ボタンミサイル非表示
+
+	Timer_Enms->Enabled                = false; //敵出現タイマーストップ
+	Timer_Enms_laserbeam->Enabled      = false; //敵レーザービームタイマーストップ
+	Timer_gameover->Enabled            = false; //プレーヤーと敵接触判定タイマーストップ
+	Rectangle_Enm1->Visible            = false; //敵1非表示
+	Rectangle_Enm2->Visible            = false; //敵2非表示
+	Rectangle_Enm3->Visible            = false; //敵3非表示
+	Rectangle_Enm_laserbeam->Visible   = false; //敵レーザービーム非表示
+	Rectangle_startscene->Visible  	   = true;  //スタートシーン表示
+	FiTotal = 0;
+    FdtPlay = 0;
+}
+
 //---------------------------------------------------------------------------
 void __fastcall TfmShooting_main::FloatAnimation_background1Finish(TObject *Sender)
 
@@ -96,7 +116,28 @@ void __fastcall TfmShooting_main::Button_missileClick(TObject *Sender)
 	Rectangle_missile->Position->Y     	= Rectangle_player->Position->Y + 25;
 	FloatAnimation_missile->StopValue   = missile_max;  //ミサイル最終地点設定
 	FloatAnimation_missile->StartValue	= Rectangle_player->Position->X + 20;
-	FloatAnimation_missile->StopValue	= missile_max;	//ミサイルの目標値をセット
+	auto iExPos	= missile_max;
+	auto iEnmX  = missile_max;
+	for (int i = 0; i < 3; i++) {/*ループで敵3つを順番に撃破可能か調べる*/
+		switch(i){
+		case 0: em_buf_ = Rectangle_Enm1; break;
+		case 1: em_buf_ = Rectangle_Enm2; break;
+		case 2: em_buf_ = Rectangle_Enm3;
+		}
+		auto iTemp = EnmExist(em_buf_);
+		if ((iTemp < missile_max) && (iEnmX > em_buf_->Position->X))
+		{   /*敵の前に敵が居る場合, 手前の敵を優先*/
+			iExPos		= iTemp;
+			KanokeBuf	= em_buf_;
+		}
+		if (KanokeBuf != nullptr) {//撃破出来る敵変数に存在するか確認
+			iEnmX		= KanokeBuf->Position->X;
+		}
+	}
+
+	if( iExPos < (Rectangle_player->Position->X + Rectangle_player->Width))
+		iExPos	= missile_max;  //敵がプレーヤーより後ろにいる場合標的から外す
+	FloatAnimation_missile->StopValue	= iExPos;	//ミサイルの目標値をセット
 	Rectangle_missile->Visible 			= true;     //ミサイルを表示
 	FloatAnimation_missile->Start();                //ミサイル発射
 }
@@ -109,7 +150,8 @@ void __fastcall TfmShooting_main::FloatAnimation_player_xFinish(TObject *Sender)
 	Button_down->Visible			= true;
 	Timer_Enms->Enabled     		= true;
 	Timer_Enms_laserbeam->Enabled 	= true;
-	//FdtPlay                 = Now();
+    Timer_gameover->Enabled         = true;
+	FdtPlay                 = Now();
 }
 //---------------------------------------------------------------------------
 
@@ -118,10 +160,9 @@ void __fastcall TfmShooting_main::FloatAnimation_missileFinish(TObject *Sender)
 	Button_missile->Enabled   	= true;
 	Rectangle_missile->Visible 	= false;
 	if (KanokeBuf != nullptr) {
-		//FiTotal++;
 		KanokeBuf->Visible     = false;
 	}
-    KanokeBuf = nullptr;
+	KanokeBuf = nullptr;
 }
 //---------------------------------------------------------------------------
 
@@ -208,6 +249,10 @@ void __fastcall TfmShooting_main::Timer_Enms_laserbeamTimer(TObject *Sender)
 		break;
 	case 3:EnmlaserbeamStat(Rectangle_Enm3);
 	}
+
+	Label_score->Text	= Format(L"Time %s / Total Score %0.9d", ARRAYOFCONST((
+		FormatDateTime("hh:nn:ss", Now() - FdtPlay), FiTotal))
+	);
 }
 //---------------------------------------------------------------------------
 
@@ -216,5 +261,98 @@ void __fastcall TfmShooting_main::FloatAnimation_Enm_laserbeamFinish(TObject *Se
 {
 	Rectangle_Enm_laserbeam->Visible	= false;
 }
+//---------------------------------------------------------------------------
+float 	__fastcall TfmShooting_main::EnmExist(TRectangle* enm)
+{
+	float f_missile_max{static_cast<float>(missile_max)};
+	float result_ = f_missile_max;
 
+	if (enm->Visible && (enm->Position->X >
+		(Rectangle_player->Position->X + Rectangle_player->Width)) )
+		if ( ((enm->Position->Y-10) <= Rectangle_missile->Position->Y) &&
+			((enm->Position->Y + (enm->Height*enm->Scale->X))+10 >= Rectangle_missile->Position->Y) )
+			result_ = enm->Position->X;
+
+	return result_;
+}
+
+void __fastcall TfmShooting_main::FormKeyDown(TObject *Sender, WORD &Key, System::WideChar &KeyChar,
+		  TShiftState Shift)
+{
+	if (Button_missile->Visible){
+		switch (KeyChar){
+		case ' ':Button_missileClick(nullptr);
+			break;
+		case (char)0:
+			switch (Key) {
+			case 38: Button_upClick(nullptr);
+				break;
+			case 40: Button_downClick(nullptr);
+			}
+		}
+
+	}
+}
+//---------------------------------------------------------------------------
+
+bool __fastcall TfmShooting_main::hantei(TRectF& r1,TRectF& r2)
+{
+	bool b1{false};
+	if ( (r1.Left < r2.Right) && (r1.Right > r2.Left) &&
+		(r1.Top < r2.Bottom)  && (r1.Bottom > r2.Top) )
+	{
+		b1 = true;
+	}
+	return b1;
+}
+
+bool __fastcall TfmShooting_main::Rect_hantei(TRectangle* rect1, TRectangle* rect2)
+{
+	if (rect2->Visible)
+	{
+		TRectF r1{TRectF(rect1->Position->X, rect1->Position->Y,
+		rect1->Position->X + rect1->Width, rect1->Position->Y + rect1->Height)};
+		TRectF r2{TRectF(rect2->Position->X, rect2->Position->Y,
+		rect2->Position->X + rect2->Width, rect2->Position->Y + rect2->Height)};
+		return this->hantei(r1, r2);
+	}
+	else
+	  return false;
+
+}
+
+
+void __fastcall TfmShooting_main::Timer_gameoverTimer(TObject *Sender)
+{
+	Timer_gameover->Enabled = false;
+	bool atari_{false};
+	for (int i =0; i < 4; i++)
+		if (! atari_)
+		{
+			switch(i)
+			{
+			case 0:
+				atari_ = Rect_hantei(Rectangle_player, Rectangle_Enm1);
+				break;
+			case 1:
+				atari_ = Rect_hantei(Rectangle_player, Rectangle_Enm2);
+				break;
+			case 2:
+				atari_ = Rect_hantei(Rectangle_player, Rectangle_Enm3);
+				break;
+			case 3:
+				atari_ = Rect_hantei(Rectangle_player, Rectangle_Enm_laserbeam);
+			}
+		}
+
+	if (atari_)
+	{
+		Rectangle_player->Visible  = false;
+		ShowMessage("ゲームオーバー");
+		game_reset(); //ゲームをリセットする
+	}
+	else
+		Timer_gameover->Enabled	= true;
+}
+//---------------------------------------------------------------------------
 
