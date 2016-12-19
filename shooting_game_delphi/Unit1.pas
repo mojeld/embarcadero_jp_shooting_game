@@ -41,6 +41,7 @@ type
     FloatAnimation_Enm_laserbeam: TFloatAnimation;
     Timer_Enms_laserbeam: TTimer;
     Label_score: TLabel;
+    Timer_gameover: TTimer;
     procedure Button_missileClick(Sender: TObject);
     procedure FloatAnimation_background2Finish(Sender: TObject);
     procedure FloatAnimation_background1Finish(Sender: TObject);
@@ -57,9 +58,13 @@ type
     procedure FloatAnimation_Enm_laserbeamFinish(Sender: TObject);
     procedure Timer_Enms_laserbeam_Timer(Sender: TObject);
     procedure FloatAnimation_player_yFinish(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; var KeyChar: Char;
+      Shift: TShiftState);
+    procedure Timer_gameoverTimer(Sender: TObject);
   private
     FiTotal:    Integer;
     FdtPlay:    TDateTime;
+    procedure game_reset;
   public
   end;
 
@@ -74,19 +79,52 @@ implementation
 
 const missile_max = 900;
 
-procedure TfmShooting_main.Button_missileClick(Sender: TObject);
+procedure TfmShooting_main.Button_missileClick(Sender: TObject);  //第9回
 var
   iExPos:   Single;     //プレーヤーミサイル最終Position.X
   iTemp:    Single;     //一旦保存用
   iEnmX:    Single;     //敵Position.X一旦保存用
   i:        Integer;    //ループ用
   em_buf_:  TRectangle; //敵一旦保存
+  function EnmExist(enm: TRectangle): Single;
+  begin         {敵が目的の座標に居た場合敵のPosition.Xを返す}
+    Result  := missile_max;
+    if enm.Visible and (enm.Position.X > (Rectangle_player.Position.X + Rectangle_player.Width)) then
+      if ((enm.Position.Y-10) <= Rectangle_missile.Position.Y) and
+        ((enm.Position.Y + (enm.Height*enm.Scale.X))+10 >= Rectangle_missile.Position.Y) then
+      begin
+        Result      := enm.Position.X;
+      end;
+  end;
 begin
   Button_missile.Enabled            := False;       //ミサイルボタンを無効
   KanokeBuff                        := nil;         //敵保存変数をクリア
   FloatAnimation_missile.StopValue  := missile_max; //ミサイル最終地点設定
   Rectangle_missile.Position.Y      := Rectangle_player.Position.Y + 25;
   FloatAnimation_missile.StartValue := Rectangle_player.Position.X + 20;
+  iExPos  := missile_max;
+  iEnmX   := missile_max;
+  for i := 0 to 2 do  {ループで敵3つを順番に撃破可能か調べる}
+  begin
+    case i of
+    0:em_buf_ := Rectangle_Enm1;
+    1:em_buf_ := Rectangle_Enm2;
+    2:em_buf_ := Rectangle_Enm3;
+    end;
+    iTemp   := EnmExist(em_buf_);
+    if (iTemp < missile_max) and (iEnmX > em_buf_.Position.X)  then
+    begin   {敵の前に敵が居る場合, 手前の敵を優先}
+      iExPos      := iTemp;
+      KanokeBuff  := em_buf_;
+    end;
+    if Assigned(KanokeBuff) then  {撃破出来る敵変数に存在するか確認}
+      iEnmX := KanokeBuff.Position.X;
+  end;
+
+  if iExPos < (Rectangle_player.Position.X + Rectangle_player.Width) then
+    iExPos := missile_max;  {敵がプレーヤーより後ろにいる場合標的から外す}
+
+  FloatAnimation_missile.StopValue  := iExPos;  {ミサイルの目標値をセット}
 
   Rectangle_missile.Visible := True;            {ミサイルを表示}
   FloatAnimation_missile.Start;                 {ミサイル発射}
@@ -182,13 +220,12 @@ begin
   Rectangle_Enm_laserbeam.Visible := False;
 end;
 
-procedure TfmShooting_main.FloatAnimation_missileFinish(Sender: TObject);
+procedure TfmShooting_main.FloatAnimation_missileFinish(Sender: TObject); //第9回
 begin
   Button_missile.Enabled    := True;  //ミサイルボタンを有効にする
   Rectangle_missile.Visible := False; //ミサイルを非表示
   if Assigned(KanokeBuff) then        //敵撃破変数に敵存在するか確認
   begin
-//    Inc(FiTotal);
     KanokeBuff.Visible  := False;     //敵を非表示にする
   end;
   KanokeBuff          := nil;         //敵撃破変数を空にする
@@ -201,7 +238,8 @@ begin
   Button_down.Visible     := True;
   Timer_Enms.Enabled            := True;
   Timer_Enms_laserbeam.Enabled  := True;
-  FdtPlay                       := Now;
+//  FdtPlay                       := Now;
+  Timer_gameover.Enabled  := True;
 end;
 
 procedure TfmShooting_main.FloatAnimation_player_yFinish(Sender: TObject);
@@ -214,9 +252,45 @@ begin
   Randomize;      //乱数初期化
 //  FiTotal := 0;
 //  FdtPlay := 0;
-  Rectangle_Enm1.Visible  := False;
-  Rectangle_Enm2.Visible  := False;
-  Rectangle_Enm3.Visible  := False;
+  game_reset;
+end;
+
+procedure TfmShooting_main.FormKeyDown(Sender: TObject; var Key: Word;
+  var KeyChar: Char; Shift: TShiftState); //第9回
+begin
+{$IFDEF WIN32}
+  if Button_missile.Visible then
+    case KeyChar of
+    ' ':Button_missileClick(nil);
+    'q': begin
+      Button_up.Visible       := False;
+      Button_down.Visible     := False;
+      Button_missile.Position.Y := - Button_missile.Height -5;
+    end;
+    #0: begin
+      case Key of
+      38:Button_upClick(nil);
+      40:Button_downClick(nil);
+      end;
+    end;
+    end;
+{$ENDIF}
+end;
+
+procedure TfmShooting_main.game_reset;
+begin //ゲームリセット
+  Button_up.Visible                 := False; //ボタンUp非表示
+  Button_down.Visible               := False; //ボタンDown非表示
+  Button_missile.Visible            := False; //ボタンミサイル非表示
+
+  Timer_Enms.Enabled                := False; //敵出現タイマーストップ
+  Timer_Enms_laserbeam.Enabled      := False; //敵レーザービームタイマーストップ
+  Timer_gameover.Enabled            := False; //プレーヤーと敵接触判定タイマーストップ
+  Rectangle_Enm1.Visible            := False; //敵1非表示
+  Rectangle_Enm2.Visible            := False; //敵2非表示
+  Rectangle_Enm3.Visible            := False; //敵3非表示
+  Rectangle_Enm_laserbeam.Visible   := False; //敵レーザービーム非表示
+  Rectangle_startscene.Visible  := True;      //スタートシーン表示
 end;
 
 procedure TfmShooting_main.Timer_EnmsTimer(Sender: TObject);
@@ -266,6 +340,70 @@ begin
   2:MissileStat(Rectangle_Enm2);
   3:MissileStat(Rectangle_Enm3);
   end;
+  {
+  Label_score.Text  := Format('Time %s / Total Score %0.9d', [
+      FormatDateTime('hh:nn:ss', Now - FdtPlay), FiTotal
+    ]);
+  }
+end;
+
+procedure TfmShooting_main.Timer_gameoverTimer(Sender: TObject);
+var
+  i: Integer;
+  atari_: Boolean;                                            //プレーヤー戦闘機と敵が接触した場合True
+  function hantei(r1, r2: TRectF): Boolean;                   //四角どうしが重なっているか判定
+  begin
+    Result  := False;
+    if (r1.Left < r2.Right) and
+      (r1.Right > r2.Left)  and
+      (r1.Top < r2.Bottom)  and
+      (r1.Bottom > r2.Top) then
+    begin
+      Result  := True;
+    end;
+  end;
+  function Rect_hantei(rect1, rect2: TRectangle): Boolean;    //TRectangleどうしが重なっているか判定
+  begin
+    if rect2.Visible then
+    begin
+      Result  := Hantei(
+        TRectF.Create(rect1.Position.X, rect1.Position.Y,
+        rect1.Position.X + rect1.Width, rect1.Position.Y + rect1.Height
+        ),
+        TRectF.Create(rect2.Position.X, rect2.Position.Y,
+        rect2.Position.X + rect2.Width, rect2.Position.Y + rect2.Height
+        ));
+    end
+    else
+      Result  := False;
+  end;
+begin
+  atari_  := False;
+  Timer_gameover.Enabled  := False;
+  for i := 0 to 3 do  //敵1～3とlaserbeamが戦闘機と接触したかを判定
+    case i of
+    0: begin
+      atari_  := Rect_hantei(Rectangle_player, Rectangle_Enm1);
+      if atari_ then Break; end;
+    1: begin
+      atari_  := Rect_hantei(Rectangle_player, Rectangle_Enm2);
+      if atari_ then Break; end;
+    2: begin
+      atari_  := Rect_hantei(Rectangle_player, Rectangle_Enm3);
+      if atari_ then Break; end;
+    3: begin
+      atari_  := Rect_hantei(Rectangle_player, Rectangle_Enm_laserbeam);
+      if atari_ then Break; end;
+    end;
+  if atari_ then
+  begin
+    Rectangle_player.Visible  := False;
+    ShowMessage('ゲームオーバー');
+    game_reset; //ゲームをリセットする
+  end
+  else
+    Timer_gameover.Enabled  := True;
+
 end;
 
 end.
