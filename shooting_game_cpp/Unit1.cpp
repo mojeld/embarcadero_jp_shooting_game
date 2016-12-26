@@ -31,7 +31,9 @@ void __fastcall TfmShooting_main::game_reset()
 	Rectangle_Enm_laserbeam->Visible   = false; //敵レーザービーム非表示
 	Rectangle_startscene->Visible  	   = true;  //スタートシーン表示
 	FiTotal = 0;
-    FdtPlay = 0;
+	FdtPlay = 0;
+	Rectangle_gameoverscene->Visible   = false; //ゲームオーバー画面非表示
+
 }
 
 //---------------------------------------------------------------------------
@@ -148,9 +150,11 @@ void __fastcall TfmShooting_main::FloatAnimation_player_xFinish(TObject *Sender)
 	Button_missile->Visible			= true;
 	Button_up->Visible				= true;
 	Button_down->Visible			= true;
+	Label_score->Visible			= true;
 	Timer_Enms->Enabled     		= true;
 	Timer_Enms_laserbeam->Enabled 	= true;
-    Timer_gameover->Enabled         = true;
+	Timer_gameover->Enabled         = true;
+
 	FdtPlay                 = Now();
 }
 //---------------------------------------------------------------------------
@@ -160,9 +164,12 @@ void __fastcall TfmShooting_main::FloatAnimation_missileFinish(TObject *Sender)
 	Button_missile->Enabled   	= true;
 	Rectangle_missile->Visible 	= false;
 	if (KanokeBuf != nullptr) {
-		KanokeBuf->Visible     = false;
+		FiTotal++;
+		Bomb_Enm();
+		Rectangle_enm_Bomb1->Position	= KanokeBuf->Position;
+		KanokeBuf->Visible     			= false;
 	}
-	KanokeBuf = nullptr;
+    KanokeBuf = nullptr;
 }
 //---------------------------------------------------------------------------
 
@@ -281,7 +288,9 @@ void __fastcall TfmShooting_main::FormKeyDown(TObject *Sender, WORD &Key, System
 {
 	if (Button_missile->Visible){
 		switch (KeyChar){
-		case ' ':Button_missileClick(nullptr);
+		case ' ':
+			(Rectangle_gameoverscene->Visible)?
+				Rectangle_gameoversceneClick(nullptr): Button_missileClick(nullptr);
 			break;
 		case (char)0:
 			switch (Key) {
@@ -290,7 +299,6 @@ void __fastcall TfmShooting_main::FormKeyDown(TObject *Sender, WORD &Key, System
 			case 40: Button_downClick(nullptr);
 			}
 		}
-
 	}
 }
 //---------------------------------------------------------------------------
@@ -347,12 +355,71 @@ void __fastcall TfmShooting_main::Timer_gameoverTimer(TObject *Sender)
 
 	if (atari_)
 	{
-		Rectangle_player->Visible  = false;
-		ShowMessage("ゲームオーバー");
-		game_reset(); //ゲームをリセットする
+		Bomb_Start();
+		Rectangle_gameoverscene->Position->Y	= -480;			   		//ゲームオーバー画面の準備
+		Rectangle_gameoverscene->Visible		= true;
+		Label_gameover_score1->Text				= Label_score->Text;	//スコア文字列コピー
+		FloatAnimation_Gameover1->Start();                     			//ゲームオーバーアニメスタート
+//		Rectangle_player->Visible  = false;
+//		ShowMessage("ゲームオーバー");
+//		game_reset(); //ゲームをリセットする
 	}
 	else
 		Timer_gameover->Enabled	= true;
 }
 //---------------------------------------------------------------------------
+
+void __fastcall TfmShooting_main::BitmapAnimation_player_Bomb6Finish(TObject *Sender)
+
+{
+	Rectangle_player_Bomb1->Visible	= false;	//戦闘機爆破アニメ非表示
+	Rectangle_player->Visible		= false;	//戦闘機非表示
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfmShooting_main::Bomb_Start()
+{
+	//戦闘機の爆破アニメーション実行
+	Rectangle_player_Bomb1->Position->Y	= Rectangle_player->Position->Y - 30;
+	Rectangle_player_Bomb1->Visible		= true;
+	BitmapAnimation_player_Bomb1->Start();
+	BitmapAnimation_player_Bomb2->Start();
+	BitmapAnimation_player_Bomb3->Start();
+	BitmapAnimation_player_Bomb4->Start();
+	BitmapAnimation_player_Bomb5->Start();
+	BitmapAnimation_player_Bomb6->Start();
+}
+
+void __fastcall TfmShooting_main::BitmapAnimation_enm_Bomb6Finish(TObject *Sender)
+
+{
+	Rectangle_enm_Bomb1->Visible	= false; //敵の爆破アニメ非表示
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfmShooting_main::Bomb_Enm()
+{
+	//敵の爆破アニメーション実行
+	Rectangle_enm_Bomb1->Visible	= true;
+	BitmapAnimation_enm_Bomb1->Start();
+	BitmapAnimation_enm_Bomb2->Start();
+	BitmapAnimation_enm_Bomb3->Start();
+	BitmapAnimation_enm_Bomb4->Start();
+	BitmapAnimation_enm_Bomb5->Start();
+	BitmapAnimation_enm_Bomb6->Start();
+}
+
+void __fastcall TfmShooting_main::Rectangle_gameoversceneClick(TObject *Sender)
+{
+    game_reset();   //ゲームをリセットする
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TfmShooting_main::FloatAnimation_Gameover1Finish(TObject *Sender)
+
+{
+	Label_score->Visible	= false;	//スコアを非表示
+}
+//---------------------------------------------------------------------------
+
 

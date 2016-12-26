@@ -14,6 +14,8 @@
 #include <random>
 
 //---------------------------------------------------------------------------
+int 	FiTotal{0}; //スコア変数
+
 class TfmShooting_main : public TForm
 {
 __published:	// IDE で管理されるコンポーネント
@@ -50,6 +52,25 @@ __published:	// IDE で管理されるコンポーネント
 	TTimer *Timer_Enms_laserbeam;
 	TLabel *Label_score;
 	TTimer *Timer_gameover;
+	TRectangle *Rectangle_player_Bomb1;
+	TBitmapAnimation *BitmapAnimation_player_Bomb1;
+	TBitmapAnimation *BitmapAnimation_player_Bomb2;
+	TBitmapAnimation *BitmapAnimation_player_Bomb3;
+	TBitmapAnimation *BitmapAnimation_player_Bomb4;
+	TBitmapAnimation *BitmapAnimation_player_Bomb5;
+	TBitmapAnimation *BitmapAnimation_player_Bomb6;
+	TRectangle *Rectangle_enm_Bomb1;
+	TBitmapAnimation *BitmapAnimation_enm_Bomb1;
+	TBitmapAnimation *BitmapAnimation_enm_Bomb2;
+	TBitmapAnimation *BitmapAnimation_enm_Bomb3;
+	TBitmapAnimation *BitmapAnimation_enm_Bomb4;
+	TBitmapAnimation *BitmapAnimation_enm_Bomb5;
+	TBitmapAnimation *BitmapAnimation_enm_Bomb6;
+	TRectangle *Rectangle_gameoverscene;
+	TLabel *Label_gameover1;
+	TLabel *Label_gameover2;
+	TFloatAnimation *FloatAnimation_Gameover1;
+	TLabel *Label_gameover_score1;
 	void __fastcall FloatAnimation_background1Finish(TObject *Sender);
 	void __fastcall FloatAnimation_background2Finish(TObject *Sender);
 	void __fastcall Button_startClick(TObject *Sender);
@@ -69,9 +90,12 @@ __published:	// IDE で管理されるコンポーネント
 	void __fastcall FormKeyDown(TObject *Sender, WORD &Key, System::WideChar &KeyChar,
 		  TShiftState Shift);
 	void __fastcall Timer_gameoverTimer(TObject *Sender);
+	void __fastcall BitmapAnimation_player_Bomb6Finish(TObject *Sender);
+	void __fastcall BitmapAnimation_enm_Bomb6Finish(TObject *Sender);
+	void __fastcall Rectangle_gameoversceneClick(TObject *Sender);
+	void __fastcall FloatAnimation_Gameover1Finish(TObject *Sender);
 private:	// ユーザー宣言
 	const unsigned int missile_max{900};
-	unsigned int 	FiTotal{0};
 	TDateTime       FdtPlay{0};
 	std::random_device rnd_;
 	std::mt19937 	randomize_{rnd_()};
@@ -80,7 +104,9 @@ private:	// ユーザー宣言
 	float __fastcall EnmExist(TRectangle* enm);
 	void __fastcall game_reset();
 	bool __fastcall hantei(TRectF& r1,TRectF& r2);
-    bool __fastcall Rect_hantei(TRectangle* rect1, TRectangle* rect2);
+	bool __fastcall Rect_hantei(TRectangle* rect1, TRectangle* rect2);
+	void __fastcall Bomb_Start();
+    void __fastcall Bomb_Enm();
 public:		// ユーザー宣言
 	__fastcall TfmShooting_main(TComponent* Owner);
 };
