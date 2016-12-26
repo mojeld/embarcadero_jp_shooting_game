@@ -42,6 +42,25 @@ type
     Timer_Enms_laserbeam: TTimer;
     Label_score: TLabel;
     Timer_gameover: TTimer;
+    Rectangle_player_Bomb1: TRectangle;
+    BitmapAnimation_player_Bomb1: TBitmapAnimation;
+    BitmapAnimation_player_Bomb2: TBitmapAnimation;
+    BitmapAnimation_player_Bomb3: TBitmapAnimation;
+    BitmapAnimation_player_Bomb4: TBitmapAnimation;
+    BitmapAnimation_player_Bomb5: TBitmapAnimation;
+    BitmapAnimation_player_Bomb6: TBitmapAnimation;
+    Rectangle_enm_Bomb1: TRectangle;
+    BitmapAnimation_enm_Bomb1: TBitmapAnimation;
+    BitmapAnimation_enm_Bomb2: TBitmapAnimation;
+    BitmapAnimation_enm_Bomb3: TBitmapAnimation;
+    BitmapAnimation_enm_Bomb4: TBitmapAnimation;
+    BitmapAnimation_enm_Bomb5: TBitmapAnimation;
+    BitmapAnimation_enm_Bomb6: TBitmapAnimation;
+    Rectangle_gameoverscene: TRectangle;
+    Label_gameover1: TLabel;
+    Label_gameover2: TLabel;
+    FloatAnimation_Gameover1: TFloatAnimation;
+    Label_gameover_score1: TLabel;
     procedure Button_missileClick(Sender: TObject);
     procedure FloatAnimation_background2Finish(Sender: TObject);
     procedure FloatAnimation_background1Finish(Sender: TObject);
@@ -61,10 +80,14 @@ type
     procedure FormKeyDown(Sender: TObject; var Key: Word; var KeyChar: Char;
       Shift: TShiftState);
     procedure Timer_gameoverTimer(Sender: TObject);
+    procedure BitmapAnimation_player_Bomb6Finish(Sender: TObject);
+    procedure BitmapAnimation_enm_Bomb6Finish(Sender: TObject);
+    procedure Rectangle_gameoversceneClick(Sender: TObject);
+    procedure FloatAnimation_Gameover1Finish(Sender: TObject);
   private
-    FiTotal:    Integer;
-    FdtPlay:    TDateTime;
     procedure game_reset;
+    procedure Bomb_Start;
+    procedure Bomb_Enm;
   public
   end;
 
@@ -72,6 +95,8 @@ type
 var
   fmShooting_main:  TfmShooting_main;
   KanokeBuff:       TRectangle=nil;     //敵撃破変数
+  FiTotal:    Integer=0;
+  FdtPlay:    TDateTime=0;
 
 implementation
 
@@ -220,12 +245,20 @@ begin
   Rectangle_Enm_laserbeam.Visible := False;
 end;
 
+procedure TfmShooting_main.FloatAnimation_Gameover1Finish(Sender: TObject);
+begin
+  Label_score.Visible := False; //スコアを非表示
+end;
+
 procedure TfmShooting_main.FloatAnimation_missileFinish(Sender: TObject); //第9回
 begin
   Button_missile.Enabled    := True;  //ミサイルボタンを有効にする
   Rectangle_missile.Visible := False; //ミサイルを非表示
   if Assigned(KanokeBuff) then        //敵撃破変数に敵存在するか確認
   begin
+    Inc(FiTotal);
+    Rectangle_enm_Bomb1.Position  := KanokeBuff.Position;
+    Bomb_Enm;
     KanokeBuff.Visible  := False;     //敵を非表示にする
   end;
   KanokeBuff          := nil;         //敵撃破変数を空にする
@@ -233,13 +266,14 @@ end;
 
 procedure TfmShooting_main.FloatAnimation_player_xFinish(Sender: TObject);
 begin
-  Button_missile.Visible  := True;
-  Button_up.Visible       := True;
-  Button_down.Visible     := True;
+  Button_missile.Visible        := True;
+  Button_up.Visible             := True;
+  Button_down.Visible           := True;
   Timer_Enms.Enabled            := True;
   Timer_Enms_laserbeam.Enabled  := True;
-//  FdtPlay                       := Now;
-  Timer_gameover.Enabled  := True;
+  FdtPlay                       := Now;
+  Label_score.Visible           := True;
+  Timer_gameover.Enabled        := True;
 end;
 
 procedure TfmShooting_main.FloatAnimation_player_yFinish(Sender: TObject);
@@ -261,7 +295,12 @@ begin
 {$IFDEF WIN32}
   if Button_missile.Visible then
     case KeyChar of
-    ' ':Button_missileClick(nil);
+    ' ': begin
+      if Rectangle_gameoverscene.Visible then //ゲームオーバーなら
+        Rectangle_gameoversceneClick(nil)     //リスタート
+      else
+        Button_missileClick(nil);
+    end;
     'q': begin
       Button_up.Visible       := False;
       Button_down.Visible     := False;
@@ -277,8 +316,10 @@ begin
 {$ENDIF}
 end;
 
-procedure TfmShooting_main.game_reset;
+procedure TfmShooting_main.game_reset;  //第9回
 begin //ゲームリセット
+  FiTotal                           := 0;     //点数を0にする。
+  FdtPlay                           := 0;     //スコア時間もリセット
   Button_up.Visible                 := False; //ボタンUp非表示
   Button_down.Visible               := False; //ボタンDown非表示
   Button_missile.Visible            := False; //ボタンミサイル非表示
@@ -290,7 +331,13 @@ begin //ゲームリセット
   Rectangle_Enm2.Visible            := False; //敵2非表示
   Rectangle_Enm3.Visible            := False; //敵3非表示
   Rectangle_Enm_laserbeam.Visible   := False; //敵レーザービーム非表示
-  Rectangle_startscene.Visible  := True;      //スタートシーン表示
+  Rectangle_startscene.Visible      := True;  //スタートシーン表示
+  Rectangle_gameoverscene.Visible   := False;
+end;
+
+procedure TfmShooting_main.Rectangle_gameoversceneClick(Sender: TObject);
+begin
+  game_reset; //ゲームをリセットする
 end;
 
 procedure TfmShooting_main.Timer_EnmsTimer(Sender: TObject);
@@ -340,14 +387,13 @@ begin
   2:MissileStat(Rectangle_Enm2);
   3:MissileStat(Rectangle_Enm3);
   end;
-  {
+
   Label_score.Text  := Format('Time %s / Total Score %0.9d', [
       FormatDateTime('hh:nn:ss', Now - FdtPlay), FiTotal
     ]);
-  }
 end;
 
-procedure TfmShooting_main.Timer_gameoverTimer(Sender: TObject);
+procedure TfmShooting_main.Timer_gameoverTimer(Sender: TObject); //第9回
 var
   i: Integer;
   atari_: Boolean;                                            //プレーヤー戦闘機と敵が接触した場合True
@@ -397,13 +443,53 @@ begin
     end;
   if atari_ then
   begin
-    Rectangle_player.Visible  := False;
-    ShowMessage('ゲームオーバー');
-    game_reset; //ゲームをリセットする
+    Bomb_Start;
+    Rectangle_gameoverscene.Position.Y  := -480;  //ゲームオーバー画面の準備
+    Rectangle_gameoverscene.Visible := True;
+    Label_gameover_score1.Text      := Label_score.Text;  //スコア文字列コピー
+    FloatAnimation_Gameover1.Start;                       //ゲームオーバーアニメスタート
+//    ShowMessage('ゲームオーバー');
   end
   else
     Timer_gameover.Enabled  := True;
 
 end;
+
+procedure TfmShooting_main.BitmapAnimation_enm_Bomb6Finish(Sender: TObject);
+begin
+  Rectangle_enm_Bomb1.Visible := False; //敵の爆破アニメ非表示
+end;
+
+procedure TfmShooting_main.BitmapAnimation_player_Bomb6Finish(Sender: TObject);
+begin
+  Rectangle_player_Bomb1.Visible  := False; //戦闘機爆破アニメ非表示
+  Rectangle_player.Visible        := False; //戦闘機非表示
+end;
+
+procedure TfmShooting_main.Bomb_Enm;
+begin
+  //敵の爆破アニメーション実行
+  Rectangle_enm_Bomb1.Visible  := True;
+  BitmapAnimation_enm_Bomb1.Start;
+  BitmapAnimation_enm_Bomb2.Start;
+  BitmapAnimation_enm_Bomb3.Start;
+  BitmapAnimation_enm_Bomb4.Start;
+  BitmapAnimation_enm_Bomb5.Start;
+  BitmapAnimation_enm_Bomb6.Start;
+end;
+
+procedure TfmShooting_main.Bomb_Start;
+begin
+  //プレーヤー(戦闘機)の爆破アニメーション実行
+  Rectangle_player_Bomb1.Position.Y := Rectangle_player.Position.Y - 30;
+  Rectangle_player_Bomb1.Visible  := True;
+  BitmapAnimation_player_Bomb1.Start;
+  BitmapAnimation_player_Bomb2.Start;
+  BitmapAnimation_player_Bomb3.Start;
+  BitmapAnimation_player_Bomb4.Start;
+  BitmapAnimation_player_Bomb5.Start;
+  BitmapAnimation_player_Bomb6.Start;
+end;
+
 
 end.
