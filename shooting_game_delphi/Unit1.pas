@@ -399,6 +399,10 @@ var
   atari_: Boolean;                                            //プレーヤー戦闘機と敵が接触した場合True
   function hantei(r1, r2: TRectF): Boolean;                   //四角どうしが重なっているか判定
   begin
+    //https://twitter.com/ht_deko/status/813299792319131648   //by DEKOさん
+    //http://docwiki.embarcadero.com/Libraries/Berlin/ja/System.Types.TRectF.IntersectsWith
+    //TRectF.IntersectsWith()を使う方法もあります
+    //https://msdn.microsoft.com/ja-jp/library/cc410420.aspx  //GDIを使う場合
     Result  := False;
     if (r1.Left < r2.Right) and
       (r1.Right > r2.Left)  and
